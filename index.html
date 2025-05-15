@@ -19,6 +19,7 @@
           <option value="fab2">Fab 2</option>
           <option value="fab3">Fab 3</option>
         </select>
+        <button id="simulationBtn">Simulation</button>
         <button id="settings">Settings</button>
       </div>
     </div>
@@ -86,6 +87,43 @@
             <h4>LOT Processing Status</h4>
             <div class="lot-list" id="lotList">
               <!-- LOT 정보가 여기에 동적으로 추가됩니다 -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Simulation Popup -->
+    <div class="simulation-popup" id="simulationPopup">
+      <div class="popup-content">
+        <div class="popup-header">
+          <h3>Path Finding Simulation</h3>
+          <button class="close-btn" id="closeSimulation">&times;</button>
+        </div>
+        <div class="popup-body">
+          <div class="simulation-controls">
+            <div class="control-group">
+              <label>Starting Point:</label>
+              <div class="point-selector" id="startPoint">
+                <span class="point-label">Click on map</span>
+              </div>
+            </div>
+            <div class="control-group">
+              <label>End Point:</label>
+              <div class="point-selector" id="endPoint">
+                <span class="point-label">Click on map</span>
+              </div>
+            </div>
+            <button id="runSimulation" class="simulation-btn">Run Simulation</button>
+          </div>
+          <div class="minimap-container">
+            <canvas id="minimap"></canvas>
+          </div>
+          <div class="simulation-results">
+            <h4>Path Information</h4>
+            <div id="pathInfo">
+              <p>Distance: <span id="pathDistance">-</span></p>
+              <p>Estimated Time: <span id="pathTime">-</span></p>
             </div>
           </div>
         </div>

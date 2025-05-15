@@ -458,4 +458,288 @@ function showEquipmentDetails(equipmentId) {
 }
 
 // 클릭 이벤트 리스너 추가
-window.addEventListener('click', onMouseClick); 
+window.addEventListener('click', onMouseClick);
+
+// 시뮬레이션 관련 변수
+let simulationPopup = document.getElementById('simulationPopup');
+let simulationBtn = document.getElementById('simulationBtn');
+let closeSimulation = document.getElementById('closeSimulation');
+let runSimulation = document.getElementById('runSimulation');
+let minimap = document.getElementById('minimap');
+let startPoint = document.getElementById('startPoint');
+let endPoint = document.getElementById('endPoint');
+let pathDistance = document.getElementById('pathDistance');
+let pathTime = document.getElementById('pathTime');
+
+let ctx = minimap.getContext('2d');
+let selectedPoint = null;
+let startPos = null;
+let endPos = null;
+let path = [];
+
+// 미니맵 크기 설정
+minimap.width = 800;
+minimap.height = 400;
+
+// 시뮬레이션 팝업 열기
+simulationBtn.addEventListener('click', () => {
+    simulationPopup.classList.add('active');
+    drawMinimap();
+});
+
+// 시뮬레이션 팝업 닫기
+closeSimulation.addEventListener('click', () => {
+    simulationPopup.classList.remove('active');
+    resetSimulation();
+});
+
+// 미니맵 그리기
+function drawMinimap() {
+    ctx.clearRect(0, 0, minimap.width, minimap.height);
+    
+    // 배경
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(0, 0, minimap.width, minimap.height);
+    
+    // 그리드
+    ctx.strokeStyle = '#333333';
+    ctx.lineWidth = 1;
+    for(let i = 0; i < minimap.width; i += 20) {
+        ctx.beginPath();
+        ctx.moveTo(i, 0);
+        ctx.lineTo(i, minimap.height);
+        ctx.stroke();
+    }
+    for(let i = 0; i < minimap.height; i += 20) {
+        ctx.beginPath();
+        ctx.moveTo(0, i);
+        ctx.lineTo(minimap.width, i);
+        ctx.stroke();
+    }
+    
+    // 장비 표시
+    equipmentPositions.forEach(pos => {
+        const x = (pos.x + 20) * (minimap.width / 40);
+        const y = (pos.z + 20) * (minimap.height / 40);
+        ctx.fillStyle = '#00ff9d';
+        ctx.fillRect(x - 5, y - 5, 10, 10);
+    });
+    
+    // 시작점과 끝점 표시
+    if(startPos) {
+        ctx.fillStyle = '#00ff00';
+        ctx.beginPath();
+        ctx.arc(startPos.x, startPos.y, 5, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    
+    if(endPos) {
+        ctx.fillStyle = '#ff0000';
+        ctx.beginPath();
+        ctx.arc(endPos.x, endPos.y, 5, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    
+    // 경로 표시
+    if(path.length > 0) {
+        ctx.strokeStyle = '#00ff9d';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(path[0].x, path[0].y);
+        for(let i = 1; i < path.length; i++) {
+            ctx.lineTo(path[i].x, path[i].y);
+        }
+        ctx.stroke();
+    }
+}
+
+// 미니맵 클릭 이벤트
+minimap.addEventListener('click', (e) => {
+    const rect = minimap.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    if(selectedPoint === 'start') {
+        startPos = { x, y };
+        startPoint.querySelector('.point-label').textContent = `(${Math.round(x)}, ${Math.round(y)})`;
+        startPoint.classList.remove('selected');
+    } else if(selectedPoint === 'end') {
+        endPos = { x, y };
+        endPoint.querySelector('.point-label').textContent = `(${Math.round(x)}, ${Math.round(y)})`;
+        endPoint.classList.remove('selected');
+    }
+    
+    selectedPoint = null;
+    drawMinimap();
+});
+
+// 시작점 선택
+startPoint.addEventListener('click', () => {
+    selectedPoint = 'start';
+    startPoint.classList.add('selected');
+    endPoint.classList.remove('selected');
+});
+
+// 끝점 선택
+endPoint.addEventListener('click', () => {
+    selectedPoint = 'end';
+    endPoint.classList.add('selected');
+    startPoint.classList.remove('selected');
+});
+
+// A* 경로 찾기 알고리즘
+function findPath(start, end) {
+    const gridSize = 20;
+    const grid = [];
+    const width = Math.ceil(minimap.width / gridSize);
+    const height = Math.ceil(minimap.height / gridSize);
+    
+    // 그리드 초기화
+    for(let i = 0; i < width; i++) {
+        grid[i] = [];
+        for(let j = 0; j < height; j++) {
+            grid[i][j] = {
+                x: i,
+                y: j,
+                walkable: true,
+                g: 0,
+                h: 0,
+                f: 0,
+                parent: null
+            };
+        }
+    }
+    
+    // 장비 위치를 장애물로 표시
+    equipmentPositions.forEach(pos => {
+        const x = Math.floor((pos.x + 20) * (minimap.width / 40) / gridSize);
+        const y = Math.floor((pos.z + 20) * (minimap.height / 40) / gridSize);
+        if(grid[x] && grid[x][y]) {
+            grid[x][y].walkable = false;
+        }
+    });
+    
+    const startNode = grid[Math.floor(start.x / gridSize)][Math.floor(start.y / gridSize)];
+    const endNode = grid[Math.floor(end.x / gridSize)][Math.floor(end.y / gridSize)];
+    
+    const openSet = [startNode];
+    const closedSet = [];
+    
+    while(openSet.length > 0) {
+        let current = openSet[0];
+        let currentIndex = 0;
+        
+        // f 값이 가장 작은 노드 찾기
+        openSet.forEach((node, index) => {
+            if(node.f < current.f) {
+                current = node;
+                currentIndex = index;
+            }
+        });
+        
+        if(current === endNode) {
+            const path = [];
+            let temp = current;
+            while(temp.parent) {
+                path.push({
+                    x: temp.x * gridSize + gridSize/2,
+                    y: temp.y * gridSize + gridSize/2
+                });
+                temp = temp.parent;
+            }
+            return path.reverse();
+        }
+        
+        openSet.splice(currentIndex, 1);
+        closedSet.push(current);
+        
+        // 이웃 노드 확인
+        const neighbors = [];
+        for(let i = -1; i <= 1; i++) {
+            for(let j = -1; j <= 1; j++) {
+                if(i === 0 && j === 0) continue;
+                
+                const x = current.x + i;
+                const y = current.y + j;
+                
+                if(x >= 0 && x < width && y >= 0 && y < height && grid[x][y].walkable) {
+                    neighbors.push(grid[x][y]);
+                }
+            }
+        }
+        
+        neighbors.forEach(neighbor => {
+            if(closedSet.includes(neighbor)) return;
+            
+            const gScore = current.g + 1;
+            let isNewPath = false;
+            
+            if(openSet.includes(neighbor)) {
+                if(gScore < neighbor.g) {
+                    neighbor.g = gScore;
+                    isNewPath = true;
+                }
+            } else {
+                neighbor.g = gScore;
+                isNewPath = true;
+                openSet.push(neighbor);
+            }
+            
+            if(isNewPath) {
+                neighbor.h = Math.sqrt(
+                    Math.pow(neighbor.x - endNode.x, 2) +
+                    Math.pow(neighbor.y - endNode.y, 2)
+                );
+                neighbor.f = neighbor.g + neighbor.h;
+                neighbor.parent = current;
+            }
+        });
+    }
+    
+    return []; // 경로를 찾지 못한 경우
+}
+
+// 시뮬레이션 실행
+runSimulation.addEventListener('click', () => {
+    if(!startPos || !endPos) {
+        alert('Please select both start and end points');
+        return;
+    }
+    
+    path = findPath(startPos, endPos);
+    
+    if(path.length > 0) {
+        // 거리 계산
+        let distance = 0;
+        for(let i = 1; i < path.length; i++) {
+            distance += Math.sqrt(
+                Math.pow(path[i].x - path[i-1].x, 2) +
+                Math.pow(path[i].y - path[i-1].y, 2)
+            );
+        }
+        
+        // 시간 계산 (OHT 속도 가정: 1m/s)
+        const time = distance / 20; // 20 pixels = 1 meter
+        
+        pathDistance.textContent = `${(distance / 20).toFixed(2)}m`;
+        pathTime.textContent = `${time.toFixed(1)}s`;
+    } else {
+        alert('No valid path found');
+    }
+    
+    drawMinimap();
+});
+
+// 시뮬레이션 초기화
+function resetSimulation() {
+    startPos = null;
+    endPos = null;
+    path = [];
+    selectedPoint = null;
+    startPoint.querySelector('.point-label').textContent = 'Click on map';
+    endPoint.querySelector('.point-label').textContent = 'Click on map';
+    startPoint.classList.remove('selected');
+    endPoint.classList.remove('selected');
+    pathDistance.textContent = '-';
+    pathTime.textContent = '-';
+} 
