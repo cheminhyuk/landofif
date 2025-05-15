@@ -25,8 +25,7 @@ const equipmentData = {
         status: 'Running',
         lots: [
             { id: 'LOT-001', status: 'processing', progress: 75 },
-            { id: 'LOT-002', status: 'waiting', progress: 0 },
-            { id: 'LOT-003', status: 'completed', progress: 100 }
+            { id: 'LOT-002', status: 'waiting', progress: 0 }
         ]
     },
     'equipment-2': {
@@ -42,15 +41,151 @@ const equipmentData = {
         modelNumber: 'IIP-3000',
         status: 'Maintenance',
         lots: []
+    },
+    'equipment-4': {
+        name: 'Chemical Vapor Deposition',
+        modelNumber: 'CVD-2500',
+        status: 'Running',
+        lots: [
+            { id: 'LOT-005', status: 'processing', progress: 45 }
+        ]
+    },
+    'equipment-5': {
+        name: 'Physical Vapor Deposition',
+        modelNumber: 'PVD-1800',
+        status: 'Running',
+        lots: [
+            { id: 'LOT-006', status: 'processing', progress: 30 }
+        ]
+    },
+    'equipment-6': {
+        name: 'Wafer Inspection System',
+        modelNumber: 'WIS-3000',
+        status: 'Idle',
+        lots: []
+    },
+    'equipment-7': {
+        name: 'Wafer Cleaning System',
+        modelNumber: 'WCS-2000',
+        status: 'Running',
+        lots: [
+            { id: 'LOT-007', status: 'processing', progress: 60 }
+        ]
+    },
+    'equipment-8': {
+        name: 'Wafer Testing System',
+        modelNumber: 'WTS-4000',
+        status: 'Running',
+        lots: [
+            { id: 'LOT-008', status: 'processing', progress: 25 }
+        ]
     }
 };
+
+// OHT 관련 변수
+let ohts = [];
+const OHT_SPEED = 0.05;
+const OHT_COUNT = 3;
+
+// OHT 모델 생성 함수
+function createOHTModel() {
+    const group = new THREE.Group();
+    
+    // OHT 본체
+    const bodyGeometry = new THREE.BoxGeometry(1.5, 0.8, 2.5);
+    const bodyMaterial = new THREE.MeshPhongMaterial({ 
+        color: 0x2196f3,
+        metalness: 0.8,
+        roughness: 0.2
+    });
+    const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+    group.add(body);
+
+    // OHT 바퀴
+    const wheelGeometry = new THREE.CylinderGeometry(0.2, 0.2, 0.1, 16);
+    const wheelMaterial = new THREE.MeshPhongMaterial({ 
+        color: 0x333333,
+        metalness: 0.5,
+        roughness: 0.5
+    });
+
+    // 앞바퀴
+    const frontWheel1 = new THREE.Mesh(wheelGeometry, wheelMaterial);
+    frontWheel1.rotation.z = Math.PI / 2;
+    frontWheel1.position.set(0.8, -0.4, 0.8);
+    group.add(frontWheel1);
+
+    const frontWheel2 = new THREE.Mesh(wheelGeometry, wheelMaterial);
+    frontWheel2.rotation.z = Math.PI / 2;
+    frontWheel2.position.set(0.8, -0.4, -0.8);
+    group.add(frontWheel2);
+
+    // 뒷바퀴
+    const rearWheel1 = new THREE.Mesh(wheelGeometry, wheelMaterial);
+    rearWheel1.rotation.z = Math.PI / 2;
+    rearWheel1.position.set(-0.8, -0.4, 0.8);
+    group.add(rearWheel1);
+
+    const rearWheel2 = new THREE.Mesh(wheelGeometry, wheelMaterial);
+    rearWheel2.rotation.z = Math.PI / 2;
+    rearWheel2.position.set(-0.8, -0.4, -0.8);
+    group.add(rearWheel2);
+
+    return group;
+}
+
+// OHT Rail 생성 함수
+function createOHTRail() {
+    const group = new THREE.Group();
+    
+    // Rail 본체
+    const railGeometry = new THREE.BoxGeometry(0.3, 0.3, 40);
+    const railMaterial = new THREE.MeshPhongMaterial({ 
+        color: 0x666666,
+        metalness: 0.7,
+        roughness: 0.3
+    });
+    
+    // 수평 레일
+    const horizontalRail = new THREE.Mesh(railGeometry, railMaterial);
+    horizontalRail.position.set(0, 5, 0);
+    group.add(horizontalRail);
+
+    // 수직 레일
+    const verticalRail = new THREE.Mesh(railGeometry, railMaterial);
+    verticalRail.rotation.z = Math.PI / 2;
+    verticalRail.position.set(-15, 5, 0);
+    group.add(verticalRail);
+
+    const verticalRail2 = new THREE.Mesh(railGeometry, railMaterial);
+    verticalRail2.rotation.z = Math.PI / 2;
+    verticalRail2.position.set(15, 5, 0);
+    group.add(verticalRail2);
+
+    // 레일 지지대
+    const supportGeometry = new THREE.BoxGeometry(0.2, 5, 0.2);
+    const supportMaterial = new THREE.MeshPhongMaterial({ 
+        color: 0x888888,
+        metalness: 0.5,
+        roughness: 0.5
+    });
+
+    // 수직 레일 지지대
+    for(let x = -15; x <= 15; x += 5) {
+        const support = new THREE.Mesh(supportGeometry, supportMaterial);
+        support.position.set(x, 2.5, 0);
+        group.add(support);
+    }
+
+    return group;
+}
 
 // 장비 모델 생성 함수 수정
 function createFactoryModel() {
     const group = new THREE.Group();
     
     // 공장 바닥
-    const floorGeometry = new THREE.PlaneGeometry(20, 20);
+    const floorGeometry = new THREE.PlaneGeometry(40, 40);
     const floorMaterial = new THREE.MeshPhongMaterial({ 
         color: 0x333333,
         side: THREE.DoubleSide
@@ -59,17 +194,59 @@ function createFactoryModel() {
     floor.rotation.x = -Math.PI / 2;
     group.add(floor);
 
-    // 장비들
+    // 그리드 라인 추가
+    const gridHelper = new THREE.GridHelper(40, 40, 0x444444, 0x222222);
+    gridHelper.position.y = 0.01;
+    group.add(gridHelper);
+
+    // OHT Rail 추가
+    const ohtRail = createOHTRail();
+    group.add(ohtRail);
+
+    // OHT 생성 및 초기 위치 설정
+    for(let i = 0; i < OHT_COUNT; i++) {
+        const oht = createOHTModel();
+        oht.position.set(
+            -15 + (i * 10),  // x position
+            5,              // y position (rail height)
+            0               // z position
+        );
+        oht.userData = {
+            direction: 1,   // 1: right, -1: left
+            speed: OHT_SPEED,
+            targetX: 15     // target position
+        };
+        group.add(oht);
+        ohts.push(oht);
+    }
+
+    // 장비들 배치
     const equipmentPositions = [
+        // Line 1
+        { x: -15, z: -15, id: 'equipment-1' },
+        { x: -10, z: -15, id: 'equipment-2' },
+        { x: -5, z: -15, id: 'equipment-3' },
+        { x: 0, z: -15, id: 'equipment-4' },
+        { x: 5, z: -15, id: 'equipment-5' },
+        { x: 10, z: -15, id: 'equipment-6' },
+        // Line 2
+        { x: -15, z: -5, id: 'equipment-7' },
+        { x: -10, z: -5, id: 'equipment-8' },
         { x: -5, z: -5, id: 'equipment-1' },
         { x: 0, z: -5, id: 'equipment-2' },
         { x: 5, z: -5, id: 'equipment-3' },
-        { x: -5, z: 0, id: 'equipment-4' },
-        { x: 0, z: 0, id: 'equipment-5' },
-        { x: 5, z: 0, id: 'equipment-6' }
+        { x: 10, z: -5, id: 'equipment-4' },
+        // Line 3
+        { x: -15, z: 5, id: 'equipment-5' },
+        { x: -10, z: 5, id: 'equipment-6' },
+        { x: -5, z: 5, id: 'equipment-7' },
+        { x: 0, z: 5, id: 'equipment-8' },
+        { x: 5, z: 5, id: 'equipment-1' },
+        { x: 10, z: 5, id: 'equipment-2' }
     ];
 
     equipmentPositions.forEach(pos => {
+        // 장비 본체
         const equipmentGeometry = new THREE.BoxGeometry(2, 3, 2);
         const equipmentMaterial = new THREE.MeshPhongMaterial({ 
             color: 0x00ff9d,
@@ -79,6 +256,26 @@ function createFactoryModel() {
         equipment.position.set(pos.x, 1.5, pos.z);
         equipment.userData.id = pos.id;
         group.add(equipment);
+
+        // 장비 베이스
+        const baseGeometry = new THREE.BoxGeometry(2.5, 0.2, 2.5);
+        const baseMaterial = new THREE.MeshPhongMaterial({ 
+            color: 0x666666
+        });
+        const base = new THREE.Mesh(baseGeometry, baseMaterial);
+        base.position.set(pos.x, 0.1, pos.z);
+        group.add(base);
+
+        // 장비 상태 표시등
+        const statusLightGeometry = new THREE.SphereGeometry(0.2, 16, 16);
+        const statusLightMaterial = new THREE.MeshPhongMaterial({ 
+            color: 0x00ff00,
+            emissive: 0x00ff00,
+            emissiveIntensity: 0.5
+        });
+        const statusLight = new THREE.Mesh(statusLightGeometry, statusLightMaterial);
+        statusLight.position.set(pos.x + 1, 2, pos.z + 1);
+        group.add(statusLight);
     });
 
     return group;
@@ -164,10 +361,35 @@ setInterval(() => {
     }
 }, 5000);
 
-// 애니메이션 루프
+// OHT 애니메이션 업데이트 함수
+function updateOHTs() {
+    ohts.forEach(oht => {
+        // 현재 위치 업데이트
+        oht.position.x += oht.userData.speed * oht.userData.direction;
+
+        // 방향 전환 체크
+        if(oht.position.x >= 15) {
+            oht.userData.direction = -1;
+            oht.rotation.y = Math.PI;
+        } else if(oht.position.x <= -15) {
+            oht.userData.direction = 1;
+            oht.rotation.y = 0;
+        }
+
+        // 바퀴 회전
+        oht.children.forEach(child => {
+            if(child.geometry instanceof THREE.CylinderGeometry) {
+                child.rotation.x += 0.1;
+            }
+        });
+    });
+}
+
+// 애니메이션 루프 수정
 function animate() {
     requestAnimationFrame(animate);
     controls.update();
+    updateOHTs();  // OHT 애니메이션 업데이트
     renderer.render(scene, camera);
 }
 
