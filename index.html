@@ -3,169 +3,64 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Digital Twin Viewer</title>
+    <title>Semiconductor Factory Digital Twin</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-    <style>
-      body {
-        margin: 0;
-        overflow: hidden;
-        font-family: Arial, sans-serif;
-      }
-      #viewer {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-      }
-      .control-panel {
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: rgba(0, 0, 0, 0.7);
-        color: white;
-        padding: 15px;
-        border-radius: 8px;
-        z-index: 1000;
-      }
-      .control-panel h2 {
-        margin: 0 0 15px 0;
-        font-size: 18px;
-      }
-      .control-group {
-        margin-bottom: 15px;
-      }
-      .control-group label {
-        display: block;
-        margin-bottom: 5px;
-      }
-      .control-group select, .control-group input {
-        width: 100%;
-        padding: 5px;
-        background: rgba(255, 255, 255, 0.1);
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        color: white;
-        border-radius: 4px;
-      }
-      .status-bar {
-        position: fixed;
-        bottom: 20px;
-        left: 20px;
-        background: rgba(0, 0, 0, 0.7);
-        color: white;
-        padding: 10px 15px;
-        border-radius: 8px;
-        font-size: 14px;
-      }
-    </style>
+    <link rel="stylesheet" href="styles.css">
   </head>
 
   <body>
-    <h1>Digital Twin Viewer</h1>
+    <div class="menu-bar">
+      <div class="logo">Semiconductor Factory DT</div>
+      <div class="menu-items">
+        <select id="monitoringTarget">
+          <option value="">Select Monitoring Target</option>
+          <option value="fab1">Fab 1</option>
+          <option value="fab2">Fab 2</option>
+          <option value="fab3">Fab 3</option>
+        </select>
+        <button id="settings">Settings</button>
+      </div>
+    </div>
+
     <div id="viewer"></div>
     
-    <div class="control-panel">
-      <h2>Digital Twin Controls</h2>
-      <div class="control-group">
-        <label for="viewMode">View Mode</label>
-        <select id="viewMode">
-          <option value="3d">3D View</option>
-          <option value="top">Top View</option>
-          <option value="side">Side View</option>
-        </select>
-      </div>
-      <div class="control-group">
-        <label for="layerVisibility">Layer Visibility</label>
-        <select id="layerVisibility">
-          <option value="all">All Layers</option>
-          <option value="structure">Structure Only</option>
-          <option value="equipment">Equipment Only</option>
-        </select>
-      </div>
-      <div class="control-group">
-        <label for="measurement">Measurement Tool</label>
-        <select id="measurement">
-          <option value="none">None</option>
-          <option value="distance">Distance</option>
-          <option value="area">Area</option>
-        </select>
+    <div class="viewport-controls">
+      <button id="zoomIn">+</button>
+      <button id="zoomOut">-</button>
+      <button id="resetView">Reset</button>
+      <div class="camera-controls">
+        <button id="topView">Top</button>
+        <button id="frontView">Front</button>
+        <button id="sideView">Side</button>
       </div>
     </div>
 
-    <div class="status-bar">
-      Coordinates: <span id="coordinates">X: 0, Y: 0, Z: 0</span>
+    <div class="dashboard-overlay">
+      <div class="dashboard-header">
+        <h2>Factory Dashboard</h2>
+        <span class="update-time">Last Updated: <span id="lastUpdate">-</span></span>
+      </div>
+      <div class="dashboard-grid">
+        <div class="metric-card">
+          <h3>Operation Rate</h3>
+          <div class="metric-value" id="operationRate">95%</div>
+        </div>
+        <div class="metric-card">
+          <h3>Production Volume</h3>
+          <div class="metric-value" id="productionVolume">1,234</div>
+        </div>
+        <div class="metric-card">
+          <h3>Yield Rate</h3>
+          <div class="metric-value" id="yieldRate">98.5%</div>
+        </div>
+        <div class="metric-card">
+          <h3>Equipment Status</h3>
+          <div class="metric-value" id="equipmentStatus">Normal</div>
+        </div>
+      </div>
     </div>
 
-    <script>
-      // Three.js 초기화
-      const scene = new THREE.Scene();
-      const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-      const renderer = new THREE.WebGLRenderer({ antialias: true });
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      document.getElementById('viewer').appendChild(renderer.domElement);
-
-      // OrbitControls 설정
-      const controls = new THREE.OrbitControls(camera, renderer.domElement);
-      controls.enableDamping = true;
-      controls.dampingFactor = 0.05;
-
-      // 조명 설정
-      const ambientLight = new THREE.AmbientLight(0x404040);
-      scene.add(ambientLight);
-      const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
-      directionalLight.position.set(1, 1, 1);
-      scene.add(directionalLight);
-
-      // 샘플 3D 모델 생성 (큐브)
-      const geometry = new THREE.BoxGeometry(2, 2, 2);
-      const material = new THREE.MeshPhongMaterial({ 
-        color: 0x00ff00,
-        wireframe: true
-      });
-      const cube = new THREE.Mesh(geometry, material);
-      scene.add(cube);
-
-      // 카메라 위치 설정
-      camera.position.z = 5;
-
-      // 윈도우 리사이즈 핸들러
-      window.addEventListener('resize', () => {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-      });
-
-      // 마우스 이동에 따른 좌표 업데이트
-      const raycaster = new THREE.Raycaster();
-      const mouse = new THREE.Vector2();
-
-      function onMouseMove(event) {
-        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-
-        raycaster.setFromCamera(mouse, camera);
-        const intersects = raycaster.intersectObjects(scene.children);
-
-        if (intersects.length > 0) {
-          const point = intersects[0].point;
-          document.getElementById('coordinates').textContent = 
-            `X: ${point.x.toFixed(2)}, Y: ${point.y.toFixed(2)}, Z: ${point.z.toFixed(2)}`;
-        }
-      }
-
-      window.addEventListener('mousemove', onMouseMove);
-
-      // 애니메이션 루프
-      function animate() {
-        requestAnimationFrame(animate);
-        controls.update();
-        cube.rotation.x += 0.01;
-        cube.rotation.y += 0.01;
-        renderer.render(scene, camera);
-      }
-
-      animate();
-    </script>
+    <script src="main.js"></script>
   </body>
 </html> 
