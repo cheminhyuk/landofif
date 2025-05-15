@@ -141,4 +141,125 @@ body {
   font-size: 24px;
   font-weight: bold;
   color: #00ff9d;
+}
+
+/* Equipment Popup Styles */
+.equipment-popup {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 2000;
+  justify-content: center;
+  align-items: center;
+}
+
+.equipment-popup.active {
+  display: flex;
+}
+
+.popup-content {
+  background-color: #2c2c2c;
+  border-radius: 8px;
+  width: 400px;
+  max-width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  border-bottom: 1px solid #3c3c3c;
+}
+
+.popup-header h3 {
+  margin: 0;
+  color: #00ff9d;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.close-btn:hover {
+  color: #fff;
+}
+
+.popup-body {
+  padding: 20px;
+}
+
+.equipment-info {
+  margin-bottom: 20px;
+}
+
+.info-row {
+  display: flex;
+  margin-bottom: 10px;
+}
+
+.info-row .label {
+  width: 120px;
+  color: #888;
+}
+
+.info-row .value {
+  color: #fff;
+  font-weight: 500;
+}
+
+.lot-info h4 {
+  color: #00ff9d;
+  margin: 0 0 15px 0;
+}
+
+.lot-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lot-item {
+  background-color: #3c3c3c;
+  padding: 10px;
+  border-radius: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.lot-item .lot-id {
+  font-weight: 500;
+}
+
+.lot-item .lot-status {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.lot-item .lot-status.processing {
+  background-color: #00ff9d;
+  color: #000;
+}
+
+.lot-item .lot-status.waiting {
+  background-color: #ffd700;
+  color: #000;
+}
+
+.lot-item .lot-status.completed {
+  background-color: #4caf50;
+  color: #fff;
 } 

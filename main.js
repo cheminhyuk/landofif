@@ -17,7 +17,35 @@ const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
 directionalLight.position.set(1, 1, 1);
 scene.add(directionalLight);
 
-// 샘플 반도체 공장 모델 생성
+// 장비 정보 데이터 (실제로는 API에서 가져와야 함)
+const equipmentData = {
+    'equipment-1': {
+        name: 'Photo Lithography System',
+        modelNumber: 'PLS-2000',
+        status: 'Running',
+        lots: [
+            { id: 'LOT-001', status: 'processing', progress: 75 },
+            { id: 'LOT-002', status: 'waiting', progress: 0 },
+            { id: 'LOT-003', status: 'completed', progress: 100 }
+        ]
+    },
+    'equipment-2': {
+        name: 'Etching System',
+        modelNumber: 'ETS-1500',
+        status: 'Idle',
+        lots: [
+            { id: 'LOT-004', status: 'waiting', progress: 0 }
+        ]
+    },
+    'equipment-3': {
+        name: 'Ion Implanter',
+        modelNumber: 'IIP-3000',
+        status: 'Maintenance',
+        lots: []
+    }
+};
+
+// 장비 모델 생성 함수 수정
 function createFactoryModel() {
     const group = new THREE.Group();
     
@@ -33,12 +61,12 @@ function createFactoryModel() {
 
     // 장비들
     const equipmentPositions = [
-        { x: -5, z: -5 },
-        { x: 0, z: -5 },
-        { x: 5, z: -5 },
-        { x: -5, z: 0 },
-        { x: 0, z: 0 },
-        { x: 5, z: 0 }
+        { x: -5, z: -5, id: 'equipment-1' },
+        { x: 0, z: -5, id: 'equipment-2' },
+        { x: 5, z: -5, id: 'equipment-3' },
+        { x: -5, z: 0, id: 'equipment-4' },
+        { x: 0, z: 0, id: 'equipment-5' },
+        { x: 5, z: 0, id: 'equipment-6' }
     ];
 
     equipmentPositions.forEach(pos => {
@@ -49,6 +77,7 @@ function createFactoryModel() {
         });
         const equipment = new THREE.Mesh(equipmentGeometry, equipmentMaterial);
         equipment.position.set(pos.x, 1.5, pos.z);
+        equipment.userData.id = pos.id;
         group.add(equipment);
     });
 
@@ -142,4 +171,69 @@ function animate() {
     renderer.render(scene, camera);
 }
 
-animate(); 
+animate();
+
+// 팝업 관련 요소
+const popup = document.getElementById('equipmentPopup');
+const closePopupBtn = document.getElementById('closePopup');
+
+// 팝업 닫기
+closePopupBtn.addEventListener('click', () => {
+    popup.classList.remove('active');
+});
+
+// 장비 클릭 이벤트 처리
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+
+function onMouseClick(event) {
+    // 마우스 위치를 정규화된 장치 좌표로 변환
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+    // 레이캐스팅
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObjects(scene.children, true);
+
+    if (intersects.length > 0) {
+        const object = intersects[0].object;
+        if (object.userData.id) {
+            showEquipmentDetails(object.userData.id);
+        }
+    }
+}
+
+// 장비 상세 정보 표시
+function showEquipmentDetails(equipmentId) {
+    const equipment = equipmentData[equipmentId] || {
+        name: 'Unknown Equipment',
+        modelNumber: 'N/A',
+        status: 'Unknown',
+        lots: []
+    };
+
+    // 기본 정보 업데이트
+    document.getElementById('equipmentName').textContent = equipment.name;
+    document.getElementById('modelNumber').textContent = equipment.modelNumber;
+    document.getElementById('equipmentStatus').textContent = equipment.status;
+
+    // LOT 정보 업데이트
+    const lotList = document.getElementById('lotList');
+    lotList.innerHTML = '';
+
+    equipment.lots.forEach(lot => {
+        const lotElement = document.createElement('div');
+        lotElement.className = 'lot-item';
+        lotElement.innerHTML = `
+            <span class="lot-id">${lot.id}</span>
+            <span class="lot-status ${lot.status}">${lot.status.toUpperCase()}</span>
+        `;
+        lotList.appendChild(lotElement);
+    });
+
+    // 팝업 표시
+    popup.classList.add('active');
+}
+
+// 클릭 이벤트 리스너 추가
+window.addEventListener('click', onMouseClick); 
